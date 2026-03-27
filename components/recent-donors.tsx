@@ -1,8 +1,12 @@
-import { Donor } from '@/lib/types'
 import { User, CheckCircle, XCircle } from 'lucide-react'
 
 interface RecentDonorsProps {
-  donors: Donor[]
+  donors: {
+    id: string
+    name: string
+    blood_type: string
+    status: string
+  }[]
 }
 
 export function RecentDonors({ donors }: RecentDonorsProps) {
@@ -16,7 +20,7 @@ export function RecentDonors({ donors }: RecentDonorsProps) {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-foreground truncate">{donor.name}</p>
-              <p className="text-xs text-text-muted">{donor.bloodType}</p>
+              <p className="text-xs text-text-muted">{donor.blood_type}</p>
             </div>
           </div>
           <div>

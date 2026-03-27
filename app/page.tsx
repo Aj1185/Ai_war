@@ -1,16 +1,42 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import { Navbar } from '@/components/navbar'
 import { StatsCard } from '@/components/stats-card'
 import { BloodTypeCard } from '@/components/blood-type-card'
 import { RecentDonors } from '@/components/recent-donors'
 import { EmergencyAlert } from '@/components/emergency-alert'
-import { mockBloodStock, mockDonors, mockEmergencyRequests } from '@/lib/mockData'
+import { supabase } from '@/lib/supabase'
 import { Droplet, Users, AlertCircle, TrendingUp } from 'lucide-react'
 
 export default function Home() {
-  const totalUnits = mockBloodStock.reduce((sum, stock) => sum + stock.units, 0)
-  const activeDonors = mockDonors.filter((d) => d.status === 'active').length
-  const openRequests = mockEmergencyRequests.filter((r) => r.status === 'open').length
-  const criticalRequests = mockEmergencyRequests.filter(
+  const [bloodStock, setBloodStock] = useState<any[]>([])
+  const [donors, setDonors] = useState<any[]>([])
+  const [requests, setRequests] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true)
+      const [bloodData, donorData, requestData] = await Promise.all([
+        supabase.from('blood_stock').select('*').order('blood_type'),
+        supabase.from('donors').select('*').order('created_at', { ascending: false }),
+        supabase.from('requests').select('*').order('created_at', { ascending: false }),
+      ])
+
+      setBloodStock(bloodData.data || [])
+      setDonors(donorData.data || [])
+      setRequests(requestData.data || [])
+      setLoading(false)
+    }
+
+    loadData()
+  }, [])
+
+  const totalUnits = bloodStock.reduce((sum, stock) => sum + (stock.units || 0), 0)
+  const activeDonors = donors.filter((d) => d.status === 'active').length
+  const openRequests = requests.filter((r) => r.status === 'open').length
+  const criticalRequests = requests.filter(
     (r) => r.priority === 'critical' && r.status === 'open'
   ).length
 
@@ -59,30 +85,38 @@ export default function Home() {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg border border-border p-6">
               <h3 className="text-lg font-semibold text-foreground mb-4">Blood Stock Levels</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {mockBloodStock.map((stock) => (
-                  <BloodTypeCard key={stock.bloodType} stock={stock} />
-                ))}
-              </div>
+              {loading ? (
+                <p className="text-text-muted">Loading...</p>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {bloodStock.map((stock) => (
+                    <BloodTypeCard key={stock.id} stock={stock} />
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Emergency Alerts */}
             <div className="mt-8 bg-white rounded-lg border border-border p-6">
               <h3 className="text-lg font-semibold text-foreground mb-4">Active Emergencies</h3>
-              <div className="space-y-3">
-                {mockEmergencyRequests
-                  .filter((r) => r.status === 'open')
-                  .map((request) => (
-                    <EmergencyAlert key={request.id} request={request} />
-                  ))}
-              </div>
+              {loading ? (
+                <p className="text-text-muted">Loading...</p>
+              ) : (
+                <div className="space-y-3">
+                  {requests
+                    .filter((r) => r.status === 'open')
+                    .map((request) => (
+                      <EmergencyAlert key={request.id} request={request} />
+                    ))}
+                </div>
+              )}
             </div>
           </div>
 
           {/* Recent Donors Sidebar */}
           <div className="bg-white rounded-lg border border-border p-6 h-fit">
             <h3 className="text-lg font-semibold text-foreground mb-4">Recent Donors</h3>
-            <RecentDonors donors={mockDonors.slice(0, 4)} />
+            {loading ? <p className="text-text-muted">Loading...</p> : <RecentDonors donors={donors.slice(0, 4)} />}
           </div>
         </div>
       </main>
