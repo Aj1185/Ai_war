@@ -1,40 +1,64 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navbar } from '@/components/navbar'
-import { mockDonors } from '@/lib/mockData'
-import { Donor } from '@/lib/types'
+import { supabase } from '@/lib/supabase'
 import { Search, Plus, ChevronDown } from 'lucide-react'
 
+interface Donor {
+  id: string
+  name: string
+  blood_type: string
+  last_donation: string
+  contact: string
+  status: string
+}
+
 export default function DonorsPage() {
-  const [donors, setDonors] = useState<Donor[]>(mockDonors)
+  const [donors, setDonors] = useState<Donor[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all')
   const [showForm, setShowForm] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadDonors = async () => {
+      setLoading(true)
+      const { data } = await supabase.from('donors').select('*').order('created_at', { ascending: false })
+      setDonors(data || [])
+      setLoading(false)
+    }
+    loadDonors()
+  }, [])
 
   const filteredDonors = donors.filter((donor) => {
     const matchesSearch =
       donor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      donor.bloodType.includes(searchTerm) ||
+      donor.blood_type.includes(searchTerm) ||
       donor.contact.includes(searchTerm)
     const matchesStatus = filterStatus === 'all' || donor.status === filterStatus
     return matchesSearch && matchesStatus
   })
 
-  const handleAddDonor = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddDonor = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
-    const newDonor: Donor = {
-      id: (donors.length + 1).toString(),
-      name: formData.get('name') as string,
-      bloodType: formData.get('bloodType') as any,
-      lastDonation: new Date().toISOString().split('T')[0],
-      contact: formData.get('contact') as string,
-      status: 'active',
+    const { error } = await supabase.from('donors').insert([
+      {
+        name: formData.get('name'),
+        blood_type: formData.get('bloodType'),
+        last_donation: new Date().toISOString().split('T')[0],
+        contact: formData.get('contact'),
+        status: 'active',
+      },
+    ])
+
+    if (!error) {
+      const { data } = await supabase.from('donors').select('*').order('created_at', { ascending: false })
+      setDonors(data || [])
+      setShowForm(false)
+      e.currentTarget.reset()
     }
-    setDonors([newDonor, ...donors])
-    setShowForm(false)
-    e.currentTarget.reset()
   }
 
   return (
@@ -85,7 +109,7 @@ export default function DonorsPage() {
               <input
                 type="tel"
                 name="contact"
-                placeholder="Contact Number"
+                placeholder="Contact Number (e.g., +1234567890)"
                 required
                 className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
@@ -156,16 +180,22 @@ export default function DonorsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredDonors.length > 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center text-text-muted">
+                      Loading donors...
+                    </td>
+                  </tr>
+                ) : filteredDonors.length > 0 ? (
                   filteredDonors.map((donor) => (
                     <tr key={donor.id} className="border-b border-border hover:bg-secondary transition-colors">
                       <td className="px-6 py-4 text-sm font-medium text-foreground">{donor.name}</td>
                       <td className="px-6 py-4 text-sm text-foreground">
                         <span className="bg-primary-light bg-opacity-20 text-primary px-2 py-1 rounded font-semibold">
-                          {donor.bloodType}
+                          {donor.blood_type}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-text-muted">{donor.lastDonation}</td>
+                      <td className="px-6 py-4 text-sm text-text-muted">{donor.last_donation}</td>
                       <td className="px-6 py-4 text-sm text-text-muted">{donor.contact}</td>
                       <td className="px-6 py-4 text-sm">
                         <span

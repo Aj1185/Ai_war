@@ -1,8 +1,15 @@
-import { EmergencyRequest } from '@/lib/types'
 import { AlertCircle, Clock } from 'lucide-react'
 
 interface EmergencyAlertProps {
-  request: EmergencyRequest
+  request: {
+    id: string
+    hospital_id: string
+    blood_type: string
+    units: number
+    priority: 'critical' | 'high' | 'medium'
+    status: string
+    created_at: string
+  }
 }
 
 export function EmergencyAlert({ request }: EmergencyAlertProps) {
@@ -12,7 +19,7 @@ export function EmergencyAlert({ request }: EmergencyAlertProps) {
     medium: 'bg-blue-50 border-blue-200 text-blue-900',
   }
 
-  const createdDate = new Date(request.createdAt)
+  const createdDate = new Date(request.created_at)
   const hoursAgo = Math.round((Date.now() - createdDate.getTime()) / (1000 * 60 * 60))
 
   return (
@@ -22,8 +29,8 @@ export function EmergencyAlert({ request }: EmergencyAlertProps) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 mb-1">
             <div>
-              <p className="font-semibold text-sm">{request.hospital}</p>
-              <p className="text-xs opacity-75">Blood Type: {request.bloodType}</p>
+              <p className="font-semibold text-sm">Hospital {request.hospital_id}</p>
+              <p className="text-xs opacity-75">Blood Type: {request.blood_type}</p>
             </div>
             <div className="text-right flex-shrink-0">
               <p className="font-bold text-lg">{request.units}</p>

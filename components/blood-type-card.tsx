@@ -1,7 +1,9 @@
-import { BloodStock } from '@/lib/types'
-
 interface BloodTypeCardProps {
-  stock: BloodStock
+  stock: {
+    id: string
+    blood_type: string
+    units: number
+  }
 }
 
 export function BloodTypeCard({ stock }: BloodTypeCardProps) {
@@ -18,7 +20,7 @@ export function BloodTypeCard({ stock }: BloodTypeCardProps) {
             : 'bg-white border-border hover:shadow-md'
       }`}
     >
-      <div className="text-2xl font-bold mb-1">{stock.bloodType}</div>
+      <div className="text-2xl font-bold mb-1">{stock.blood_type}</div>
       <div className={`text-sm font-semibold ${isCritical || isLow ? '' : 'text-foreground'}`}>
         {stock.units} units
       </div>
